@@ -134,4 +134,24 @@ The playlist query and ordering were correct, but the output list was truncated 
 I updated the return value from `songs[:-1]` to `songs`, preserving the full ordered playlist. I reran `pytest tests/test_playlists.py` and confirmed that both playlist length and ordering tests now pass. The fix is localized and does not affect playlist creation or notification behavior.
 
 
+### Issue #4: I got notified when a friend added my song to a playlist but not when they rated it
+
+#### How to Reproduce
+<!-- What steps did you take to confirm the bug exists before touching any code? What inputs, sequence of actions, or data condition triggered the behavior? -->
+- triggered a rating through `POST /songs/<song_id>/rate` with a user who is not the song sharer.
+- verified the rating was saved successfully.
+- checked `GET /users/<original_sharer_id>/notifications` and found no new notification for the rating.
+
+#### Root cause origin
+<!-- Which files did you look at? What was your navigation path? What moment made you confident you'd found the right place — not just a suspicious area, but the specific cause? -->
+I traced the rating endpoint in `routes/songs.py` to `services.notification_service.rate_song`. That service saves the rating but does not create any notification record. The `add_to_playlist` path has a notification creation step, so the missing notification behavior was clearly isolated to the rating flow.
+
+#### Root Cause
+<!-- In plain English, explain exactly what was wrong. Not "there was a bug in the streak logic" — explain the specific condition, comparison, or missing step that caused the problem. -->
+The rating service correctly validated the score and persisted the `Rating` object, but it never created a notification for the song sharer. There was no `create_notification(...)` call in `rate_song`, so rating a friend's shared song did not generate an alert.
+
+#### Fix and side-effect check
+<!-- What did you change and why does that change fix the root cause? What related functionality did you check afterward to confirm you didn't break anything? -->
+I added a notification call to `rate_song` after saving the rating when the rater is not the song sharer. The new notification uses `type='song_rated'` and a body message like `"{rater.username} rated your song '{song.title}'."`. I reran any relevant notification and rating tests and confirmed the rating still persists while the sharer now receives a notification. The change is localized to the rating flow and does not affect playlist add notifications.
+
 ---
