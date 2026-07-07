@@ -167,3 +167,6 @@ The rating service correctly validated the score and persisted the `Rating` obje
 I added a notification call to `rate_song` after saving the rating when the rater is not the song sharer. The new notification uses `type='song_rated'` and a body message like `"{rater.username} rated your song '{song.title}'."`. I reran any relevant notification and rating tests and confirmed the rating still persists while the sharer now receives a notification. The change is localized to the rating flow and does not affect playlist add notifications.
 
 ---
+
+## git commits
+![Git log](imgs/gitlogscreenshot.png)
