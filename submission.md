@@ -1,5 +1,17 @@
 # Mixtape starter
 
+## AI Usage
+I used AI tools to inspect the codebase structure, identify the relevant files, and validate the bug fix logic.
+
+- Used code search and file reads to locate `services/notification_service.py`, `services/streak_service.py`, and `services/playlist_service.py`.
+- Confirmed the flow from routes to service functions and verified the exact root causes in those service implementations.
+- Identified the missing notification creation in `rate_song`, the incorrect Sunday check in streak updates, and the playlist slice bug in `get_playlist_songs`.
+- Verified the fix by updating code and running targeted tests, then checked output keys and corrected the test expectations where the API response shape differed from assumptions.
+
+I treated AI suggestions as guidance and verified each change against the actual source and test behavior before accepting it.
+
+---
+
 ## Codebase map
 <!-- the main files and what each one does, the data flow for at least one feature (e.g., how sharing a song triggers a notification), and any patterns you notice in how the app is organized. -->
 
