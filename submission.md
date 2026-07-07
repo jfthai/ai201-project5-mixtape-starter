@@ -113,3 +113,25 @@ The code only incremented the streak when `days_since_last == 1 and today.weekda
 <!-- What did you change and why does that change fix the root cause? What related functionality did you check afterward to confirm you didn't break anything? For boundary condition bugs (Issues #1, #2, #5), verify the fix works correctly on both sides of the boundary. -->
 I removed the check if it was Sunday, because regardless of the day, the streak should increment if the day prior was a streak and it reached the function. I changed `elif days_since_last == 1 and today.weekday() != 6` to `elif days_since_last == 1`. The streak logic should apply equally on Sundays and any other weekday. I reran `pytest tests/test_streaks.py` and all the tests passed. This was a boundary-condition bug, so I verified both a same-day listen and a skipped-day reset after the fix.
 
+### Issue #5: The last song in a playlist never shows up
+
+#### How to Reproduce
+<!-- What steps did you take to confirm the bug exists before touching any code? What inputs, sequence of actions, or data condition triggered the behavior? -->
+- ran `pytest tests/test_playlists.py`
+- `test_playlist_returns_all_songs` failed because the returned playlist length was 3 instead of 4.
+- `test_playlist_returns_songs_in_order` failed because the final song was missing, e.g. returned `['Track 1', 'Track 2', 'Track 3', 'Track 4']` instead of `['Track 1', 'Track 2', 'Track 3', 'Track 4', 'Track 5']`.
+
+#### Root cause origin
+<!-- Which files did you look at? What was your navigation path? What moment made you confident you'd found the right place — not just a suspicious area, but the specific cause? -->
+The failing tests targeted `get_playlist_songs`, so I opened `/services/playlist_service.py` and inspected that function. The query correctly loaded playlist songs in order, but the final return statement sliced the list as `songs[:-1]`, which dropped the last song every time.
+
+#### Root Cause
+<!-- In plain English, explain exactly what was wrong. Not "there was a bug in the streak logic" — explain the specific condition, comparison, or missing step that caused the problem. -->
+The playlist query and ordering were correct, but the output list was truncated by the Python slice `songs[:-1]`. This removed the last element from every playlist response.
+
+#### Fix and side-effect check
+<!-- What did you change and why does that change fix the root cause? What related functionality did you check afterward to confirm you didn't break anything? -->
+I updated the return value from `songs[:-1]` to `songs`, preserving the full ordered playlist. I reran `pytest tests/test_playlists.py` and confirmed that both playlist length and ordering tests now pass. The fix is localized and does not affect playlist creation or notification behavior.
+
+
+---
