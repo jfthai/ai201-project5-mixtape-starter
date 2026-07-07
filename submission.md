@@ -86,3 +86,30 @@ When a song is added to a playlist via `POST /playlists/<playlist_id>/songs`, th
 - App state is stored in SQLite via `instance/mixtape.db`, allowing local persistence during development.
 - Routes reuse service functions so business rules stay centralized and easier to test.
 - Notifications and streak updates are handled in dedicated services, making those behaviors reusable across routes.
+
+---
+
+## Root Cause Analysis
+
+### Issue #1: My listening streak keeps resetting
+commit: "fix: increment streak on sundays"
+#### How to Reproduce
+<!-- What steps did you take to confirm the bug exists before touching any code? What inputs, sequence of actions, or data condition triggered the behavior? -->
+- ran `pytest tests/test_streaks.py`
+- test `test_streak_increments_on_sunday` failed, 
+- we expect an increment to the listening streak resulting in 2, but it returned 1
+
+
+#### Root cause origin
+<!-- Which files did you look at? What was your navigation path? What moment made you confident you'd found the right place — not just a suspicious area, but the specific cause? -->
+I looked at `streak_service.py`. The tests specifically checked `update_listening_streak` function in the streak_service, so I looked directly in that function. I was confident I found the right location because that function is directly involved in resetting or incrementing the streak, which is exactly what the tests test for.
+
+#### Root Cause
+<!-- In plain English, explain exactly what was wrong. Not "there was a bug in the streak logic" — explain the specific condition, comparison, or missing step that caused the problem. -->
+The code only incremented the streak when `days_since_last == 1 and today.weekday() != 6`. This means that it checks whenever the days since last was yesterday (correct) and if its not Sunday (incorrect). If it was Sunday and yesterday was a streak, then it would not increment.
+
+
+#### Fix and side-effect check
+<!-- What did you change and why does that change fix the root cause? What related functionality did you check afterward to confirm you didn't break anything? For boundary condition bugs (Issues #1, #2, #5), verify the fix works correctly on both sides of the boundary. -->
+I removed the check if it was Sunday, because regardless of the day, the streak should increment if the day prior was a streak and it reached the function. I changed `elif days_since_last == 1 and today.weekday() != 6` to `elif days_since_last == 1`. The streak logic should apply equally on Sundays and any other weekday. I reran `pytest tests/test_streaks.py` and all the tests passed. This was a boundary-condition bug, so I verified both a same-day listen and a skipped-day reset after the fix.
+
